@@ -163,6 +163,11 @@
     messagingSenderId: "1027642867381",
     appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
   };
+  <script>
+  function toggleMenu() {
+    const menu = document.getElementById("menuDropdown");
+    menu.style.display = (menu.style.display === "block") ? "none" : "block";
+  }
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   let editingId = null;
