@@ -277,7 +277,7 @@
           div.innerHTML = `
             <strong class="${overdueClass}">${task.title}</strong><br>
             <p>${task.details || ''}</p>
-            ${task.timestamp ? `<small>آخرین ویرایش: ${task.timestamp.slice(0, 10)}</small><br>` : ''}
+            ${task.timestamp ? (() => { const d = new Date(task.timestamp); const j = toJalali(d.getFullYear(), d.getMonth(), d.getDate()); return `<small>آخرین ویرایش: ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (${j.jy}/${j.jm}/${j.jd})</small><br>` })() : ''}
             ${task.dueDate ? `<small>تاریخ سررسید: ${task.dueDate} (${jalaliText})</small><br>` : ''}
             <div class="progress-bar"><div class="progress" style="width: ${task.progress}%"></div></div>
             <small>پیشرفت: ${task.progress}%</small><br>
