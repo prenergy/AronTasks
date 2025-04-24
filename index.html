@@ -1,4 +1,4 @@
-<!-- Full HTML code with edit/delete buttons and Jalali date restored -->
+<!-- Full HTML code with Firebase integration, edit/save without duplication -->
 <!DOCTYPE html>
 <html lang="fa">
 <head>
@@ -120,8 +120,7 @@
   <div id="taskForm">
     <div class="form-header" id="formHeader">وظیفه جدید</div>
     <input id="taskTitle" type="text" placeholder="مثال: خرید کتاب" />
-    <textarea id="taskDetails" placeholder="توضیحات اضافی..." oninput="updateLastEdited()"></textarea>
-    <div id="editTimestamp" class="jalali-date"></div>
+    <textarea id="taskDetails" placeholder="توضیحات اضافی..."></textarea>
     <label for="taskDue">تاریخ سررسید</label>
     <input id="taskDue" type="date" oninput="updateJalaliDate(this.value)" />
     <div class="jalali-date" id="jalaliDisplay"></div>
@@ -147,12 +146,9 @@
     let editingId = null;
 
     function toggleForm(show) {
-      const form = document.getElementById("taskForm");
-      const list = document.getElementById("taskList");
-      const header = document.getElementById("searchHeader");
-      form.style.display = show ? "block" : "none";
-      list.style.display = show ? "none" : "block";
-      header.style.display = show ? "none" : "flex";
+      document.getElementById("taskForm").style.display = show ? "block" : "none";
+      document.getElementById("taskList").style.display = show ? "none" : "block";
+      document.getElementById("searchHeader").style.display = show ? "none" : "flex";
     }
 
     function startNewTask() {
@@ -170,7 +166,6 @@
       document.getElementById('taskProgress').value = 0;
       updateProgressLabel(0);
       document.getElementById('jalaliDisplay').textContent = '';
-      document.getElementById('editTimestamp').textContent = '';
     }
 
     function updateJalaliDate(gDate) {
@@ -179,8 +174,6 @@
         const gy = parseInt(parts[0]), gm = parseInt(parts[1]) - 1, gd = parseInt(parts[2]);
         const j = toJalali(gy, gm, gd);
         document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${j.jy}/${j.jm}/${j.jd}`;
-      } else {
-        document.getElementById('jalaliDisplay').textContent = '';
       }
     }
 
@@ -194,13 +187,13 @@
       const dueDate = document.getElementById('taskDue').value;
       const progress = document.getElementById('taskProgress').value;
       const timestamp = new Date().toISOString();
-
       if (!title) return;
 
       const taskData = { title, details, dueDate, progress, timestamp };
 
       if (editingId) {
         db.collection('tasks').doc(editingId).set(taskData).then(() => {
+          editingId = null;
           toggleForm(false);
           renderTasks();
         });
@@ -216,7 +209,6 @@
       const list = document.getElementById("taskList");
       list.innerHTML = "";
       const search = document.getElementById("searchInput").value.toLowerCase();
-
       db.collection("tasks").get().then(snapshot => {
         snapshot.forEach(doc => {
           const task = doc.data();
@@ -237,7 +229,7 @@
             ${task.dueDate ? `<small>تاریخ سررسید: ${task.dueDate} (${jalaliText})</small><br>` : ''}
             <div class="progress-bar"><div class="progress" style="width: ${task.progress}%"></div></div>
             <small>پیشرفت: ${task.progress}%</small><br>
-            <button onclick="editTask('${id}', ${JSON.stringify(task).replace(/"/g, '&quot;')})">✏️ ویرایش</button>
+            <button onclick="editTask('${id}')">✏️ ویرایش</button>
             <button onclick="deleteTask('${id}')">🗑 حذف</button>
           `;
           list.appendChild(div);
@@ -245,17 +237,22 @@
       });
     }
 
-    function editTask(id, task) {
-      document.getElementById('taskTitle').value = task.title;
-      document.getElementById('taskDetails').value = task.details;
-      document.getElementById('taskDue').value = task.dueDate;
-      document.getElementById('taskProgress').value = task.progress;
-      updateProgressLabel(task.progress);
-      updateJalaliDate(task.dueDate);
-      editingId = id;
-      document.getElementById('formHeader').textContent = 'ویرایش وظیفه';
-      document.getElementById('submitButton').textContent = 'ذخیره تغییرات';
-      toggleForm(true);
+    function editTask(id) {
+      db.collection('tasks').doc(id).get().then(doc => {
+        if (doc.exists) {
+          const task = doc.data();
+          document.getElementById('taskTitle').value = task.title;
+          document.getElementById('taskDetails').value = task.details;
+          document.getElementById('taskDue').value = task.dueDate;
+          document.getElementById('taskProgress').value = task.progress;
+          updateProgressLabel(task.progress);
+          updateJalaliDate(task.dueDate);
+          editingId = id;
+          document.getElementById('formHeader').textContent = 'ویرایش وظیفه';
+          document.getElementById('submitButton').textContent = 'ذخیره تغییرات';
+          toggleForm(true);
+        }
+      });
     }
 
     function deleteTask(id) {
