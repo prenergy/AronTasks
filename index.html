@@ -2,69 +2,50 @@
 <html lang="fa">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>مدیریت وظایف</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مدیر وظایف اشتراکی</title>
   <style>
-    body {
-      direction: rtl;
-      font-family: sans-serif;
-      background-color: #f2f2f2;
-      margin: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: 30px auto;
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-    }
-    .task {
-      margin-bottom: 20px;
-      border-bottom: 1px solid #ccc;
-      padding-bottom: 15px;
-    }
-    .btn {
-      padding: 8px 16px;
-      border: none;
-      margin-top: 5px;
-      cursor: pointer;
-    }
-    .edit {
-      background-color: #e0e0e0;
-    }
-    .delete {
-      background-color: #f8d7da;
-    }
-    .add-btn {
-      position: fixed;
-      left: 20px;
-      bottom: 20px;
-      background-color: #673ab7;
-      color: white;
-      font-size: 24px;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      text-align: center;
-      line-height: 50px;
-    }
+    body { font-family: sans-serif; direction: rtl; background: #f2f2f2; max-width: 700px; margin: auto; padding: 20px; }
+    input, button, textarea { width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
+    .task { background: white; margin: 10px 0; padding: 10px; border-radius: 8px; }
+    button.action { background: #ddd; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    #loginForm, #taskForm { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+    .hidden { display: none; }
+    .progress-bar { height: 10px; background: #ccc; border-radius: 5px; overflow: hidden; }
+    .progress { height: 10px; background: #4caf50; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2 style="text-align:center; background:#4285F4; color:white; padding:10px; border-radius:8px;">لیست کارها</h2>
-    <div id="taskList"></div>
+  <div id="loginForm">
+    <h3>ورود کاربران مجاز</h3>
+    <input type="email" id="email" placeholder="ایمیل">
+    <input type="password" id="password" placeholder="رمز عبور">
+    <button onclick="login()">ورود</button>
+    <p id="loginError" style="color: red;"></p>
   </div>
-  <div class="add-btn" onclick="addTask()">+</div>
+
+  <div id="mainApp" class="hidden">
+    <h2>مدیریت وظایف</h2>
+    <div id="taskForm">
+      <input id="taskTitle" placeholder="عنوان وظیفه">
+      <textarea id="taskDetails" placeholder="توضیحات"></textarea>
+      <input type="date" id="taskDue">
+      <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+      <div id="progressLabel">پیشرفت: 0%</div>
+      <button onclick="addOrEditTask()" id="submitButton">➕ افزودن وظیفه</button>
+    </div>
+    <div id="taskList"></div>
+    <button onclick="logout()">🚪 خروج</button>
+  </div>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-  <script>
-    // Firebase config
     const firebaseConfig = {
-      apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtov0DKCjIEWw",
+      apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtoV0DKCjIEWw",
       authDomain: "arontasks.firebaseapp.com",
       projectId: "arontasks",
       storageBucket: "arontasks.appspot.com",
@@ -72,64 +53,109 @@
       appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
     };
 
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    const taskList = document.getElementById('taskList');
+    const allowedUsers = ["user1@example.com", "user2@example.com", "user3@example.com"];
+    let editId = null;
 
-    function loadTasks() {
-      taskList.innerHTML = "";
-      db.collection("tasks").get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          const task = doc.data();
-          const div = document.createElement("div");
-          div.className = "task";
-          div.innerHTML = `
-            <h3>${task.title}</h3>
+    document.getElementById('taskProgress').addEventListener('input', (e) => updateProgressLabel(e.target.value));
+
+    function updateProgressLabel(val) {
+      document.getElementById('progressLabel').innerText = `پیشرفت: ${val}%`;
+    }
+
+    window.login = function() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      signInWithEmailAndPassword(auth, email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          if (!allowedUsers.includes(user.email)) {
+            document.getElementById('loginError').innerText = 'دسترسی شما مجاز نیست';
+            signOut(auth);
+          }
+        })
+        .catch((error) => {
+          document.getElementById('loginError').innerText = 'ورود ناموفق. ایمیل یا رمز اشتباه است';
+        });
+    };
+
+    window.logout = function() {
+      signOut(auth);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user && allowedUsers.includes(user.email)) {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        loadTasks();
+      } else {
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+      }
+    });
+
+    async function loadTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+      onSnapshot(collection(db, 'tasks'), (snapshot) => {
+        taskList.innerHTML = '';
+        snapshot.forEach(docSnap => {
+          const task = docSnap.data();
+          const div = document.createElement('div');
+          div.className = 'task';
+          div.innerHTML = `<strong>${task.title}</strong><br>
             <p>${task.details}</p>
             <p>سررسید: ${task.dueDate}</p>
-            <progress max="100" value="${task.progress}"></progress>
+            <div class='progress-bar'><div class='progress' style='width: ${task.progress}%'></div></div>
             <p>پیشرفت: ${task.progress}%</p>
-            <button class="btn edit" onclick="editTask('${doc.id}', '${task.title}', '${task.details}', '${task.dueDate}', ${task.progress})">✏️ ویرایش</button>
-            <button class="btn delete" onclick="deleteTask('${doc.id}')">🗑 حذف</button>
-          `;
+            <button class='action' onclick="editTask('${docSnap.id}', ${task.progress}, '${task.title}', '${task.details}', '${task.dueDate}')">✏️ ویرایش</button>
+            <button class='action' onclick="deleteTask('${docSnap.id}')">🗑 حذف</button>`;
           taskList.appendChild(div);
         });
       });
     }
 
-    function addTask() {
-      const title = prompt("عنوان کار:");
-      const details = prompt("توضیحات:");
-      const dueDate = prompt("تاریخ سررسید:");
-      const progress = parseInt(prompt("درصد پیشرفت:"), 10);
-      if (title) {
-        db.collection("tasks").add({ title, details, dueDate, progress })
-          .then(() => loadTasks());
+    window.addOrEditTask = async function() {
+      const title = document.getElementById('taskTitle').value;
+      const details = document.getElementById('taskDetails').value;
+      const dueDate = document.getElementById('taskDue').value;
+      const progress = parseInt(document.getElementById('taskProgress').value || '0');
+
+      const task = { title, details, dueDate, progress };
+
+      if (editId) {
+        await updateDoc(doc(db, 'tasks', editId), task);
+        editId = null;
+        document.getElementById('submitButton').innerText = '➕ افزودن وظیفه';
+      } else {
+        await addDoc(collection(db, 'tasks'), task);
+      }
+
+      document.getElementById('taskTitle').value = '';
+      document.getElementById('taskDetails').value = '';
+      document.getElementById('taskDue').value = '';
+      document.getElementById('taskProgress').value = 0;
+      updateProgressLabel(0);
+    }
+
+    window.editTask = function(id, progress, title, details, dueDate) {
+      editId = id;
+      document.getElementById('taskTitle').value = title;
+      document.getElementById('taskDetails').value = details;
+      document.getElementById('taskDue').value = dueDate;
+      document.getElementById('taskProgress').value = progress;
+      updateProgressLabel(progress);
+      document.getElementById('submitButton').innerText = 'ذخیره تغییرات';
+    }
+
+    window.deleteTask = async function(id) {
+      if (confirm('آیا مطمئن هستید؟')) {
+        await deleteDoc(doc(db, 'tasks', id));
       }
     }
-
-    function editTask(id, title, details, dueDate, progress) {
-      const newTitle = prompt("عنوان جدید:", title);
-      const newDetails = prompt("توضیحات جدید:", details);
-      const newDueDate = prompt("سررسید جدید:", dueDate);
-      const newProgress = parseInt(prompt("درصد پیشرفت جدید:", progress), 10);
-      db.collection("tasks").doc(id).update({
-        title: newTitle,
-        details: newDetails,
-        dueDate: newDueDate,
-        progress: newProgress
-      }).then(() => loadTasks());
-    }
-
-    function deleteTask(id) {
-      if (confirm("آیا مطمئنی می‌خوای حذف کنی؟")) {
-        db.collection("tasks").doc(id).delete()
-          .then(() => loadTasks());
-      }
-    }
-
-    loadTasks();
   </script>
 </body>
 </html>
