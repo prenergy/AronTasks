@@ -241,13 +241,25 @@
           renderTasks();
 
     function exportTasks() {
-      db.collection("tasks").get().then(snapshot => {
-        const allTasks = [];
-        snapshot.forEach(doc => {
-          const task = doc.data();
-          task.id = doc.id;
-          allTasks.push(task);
-        });
+  db.collection("tasks").get().then(snapshot => {
+    const allTasks = [];
+    snapshot.forEach(doc => {
+      const task = doc.data();
+      task.id = doc.id;
+      allTasks.push(task);
+    });
+    const dataStr = JSON.stringify(allTasks, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "tasks_backup.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+});
         const blob = new Blob([JSON.stringify(allTasks, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
