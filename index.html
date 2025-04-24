@@ -1,361 +1,453 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مدیر وظایف</title>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
-  <style>
-    body {
-      font-family: 'Vazirmatn', sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-      direction: rtl;
-      font-size: 18px;
-    }
-    .page-header {
-      text-align: center;
-      color: white;
-      background: #2196f3;
-      padding: 15px;
-      border-radius: 10px;
-      font-size: 22px;
-      margin-bottom: 15px;
-      font-weight: bold;
-    }
-    #searchHeader {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      background: white;
-      border-radius: 8px;
-      padding: 5px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-    #searchInput {
-      flex: 1;
-      border: none;
-      outline: none;
-      font-size: 16px;
-      background: transparent;
-      padding: 10px;
-    }
-    #menu {
-      position: relative;
-      margin-left: 10px;
-    }
-    #menu button {
-      background: none;
-      border: none;
-      font-size: 24px;
-      cursor: pointer;
-    }
-    #menuDropdown {
-      display: none;
-      position: absolute;
-      left: 0;
-      top: 40px;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      z-index: 10;
-    }
-    #menuDropdown button {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      text-align: right;
-    }
-    input, button, textarea {
-      font-family: 'Vazirmatn', sans-serif;
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      box-sizing: border-box;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    .task {
-      background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-    }
-    .jalali-date {
-      font-size: 0.85em;
-      color: #777;
-      margin-top: -5px;
-      margin-bottom: 10px;
-      text-align: left;
-    }
-    #addBtn {
-      position: fixed;
-      left: 20px;
-      bottom: 20px;
-      background: #5a47d7;
-      color: white;
-      border: none;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      font-size: 30px;
-      cursor: pointer;
-    }
-    .progress-bar {
-      height: 10px;
-      background: #ccc;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-    .progress {
-      height: 10px;
-      background: #4caf50;
-    }
-    .overdue {
-      color: red;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>مدیر وظایف</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <style>
+        /* Styles for the password overlay */
+        #passwordOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #passwordForm {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #passwordInput {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background: #f2f2f2;
+            padding: 20px;
+            max-width: 700px;
+            margin: auto;
+            direction: rtl;
+            font-size: 18px;
+        }
+
+        .page-header {
+            text-align: center;
+            color: white;
+            background: #2196f3;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 22px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        #searchHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 5px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #searchInput {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            background: transparent;
+            padding: 10px;
+        }
+
+        #menu {
+            position: relative;
+            margin-left: 10px;
+        }
+
+        #menu button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        #menuDropdown {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 40px;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        #menuDropdown button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: right;
+        }
+
+        input,
+        button,
+        textarea {
+            font-family: 'Vazirmatn', sans-serif;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        .task {
+            background: white;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+
+        .jalali-date {
+            font-size: 0.85em;
+            color: #777;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        #addBtn {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            background: #5a47d7;
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 30px;
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #ccc;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress {
+            height: 10px;
+            background: #4caf50;
+        }
+
+        .overdue {
+            color: red;
+        }
+    </style>
 </head>
+
 <body>
-  <div class="page-header">لیست کارها</div>
-  <div id="searchHeader">
-    <div id="menu">
-      <button onclick="toggleMenu()">⋮</button>
-      <div id="menuDropdown">
-        <button onclick="exportTasks()">📥 پشتیبان‌گیری</button>
-        <button onclick="document.getElementById('importFile').click()">📤 بازیابی</button>
-        <input type="file" id="importFile" onchange="importTasks(event)" style="display: none;" />
-      </div>
+    <!-- Password Overlay -->
+    <div id="passwordOverlay">
+        <div id="passwordForm">
+            <h2>لطفاً رمز عبور را وارد کنید:</h2>
+            <input type="password" id="passwordInput" placeholder="رمز عبور" />
+            <button onclick="checkPassword()">ورود</button>
+            <p id="passwordError" style="color: red; display: none;">رمز عبور اشتباه است.</p>
+        </div>
     </div>
-    <input id="searchInput" type="text" placeholder="جستجوی وظایف..." oninput="renderTasks()" />
-  </div>
-  <div id="taskList"></div>
-  <div id="taskForm" style="display: none">
-    <div class="form-header" id="formHeader">وظیفه جدید</div>
-    <input id="taskTitle" type="text" placeholder="مثال: خرید کتاب" />
-    <textarea id="taskDetails" placeholder="توضیحات اضافی..."></textarea>
-    <label for="taskDue">تاریخ سررسید</label>
-    <input id="taskDue" type="date" oninput="updateJalaliDate(this.value)" />
-    <div class="jalali-date" id="jalaliDisplay"></div>
-    <label for="taskProgress">پیشرفت</label>
-    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)" />
-    <div class="jalali-date"><span id="progressLabel">0%</span></div>
-    <button id="submitButton" onclick="addTaskToFirestore()">➕ افزودن وظیفه</button>
-  </div>
-  <button id="addBtn" onclick="startNewTask()">+</button>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtov0DKCjIEWw",
-      authDomain: "arontasks.firebaseapp.com",
-      projectId: "arontasks",
-      storageBucket: "arontasks.firebasestorage.app",
-      messagingSenderId: "1027642867381",
-      appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    let editingId = null;
 
-    function toggleMenu() {
-      const menu = document.getElementById("menuDropdown");
-      menu.style.display = menu.style.display === "block" ? "none" : "block";
-    }
-
-    function toJalali(gy, gm, gd) {
-      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-      let jy, jm, jd;
-      const gy2 = (gm > 1) ? (gy + 1) : gy;
-      const leapG = ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0));
-      let gy_day_no = g_d_m[gm] + gd - 1;
-      if (leapG && gm > 1) gy_day_no++;
-      let days = (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4)
-        - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400) + gy_day_no - 79;
-      const j_np = Math.floor(days / 12053);
-      days %= 12053;
-      jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
-      days %= 1461;
-      if (days >= 366) {
-        jy += Math.floor((days - 1) / 365);
-        days = (days - 1) % 365;
-      }
-      if (days < 186) {
-        jm = 1 + Math.floor(days / 31);
-        jd = 1 + (days % 31);
-      } else {
-        jm = 7 + Math.floor((days - 186) / 30);
-        jd = 1 + ((days - 186) % 30);
-      }
-      return { jy, jm, jd };
-    }
-
-    function updateJalaliDate(gDate) {
-      const parts = gDate.split('-');
-      if (parts.length === 3) {
-        const gy = parseInt(parts[0]), gm = parseInt(parts[1]) - 1, gd = parseInt(parts[2]);
-        const j = toJalali(gy, gm, gd);
-        document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${j.jy}/${j.jm}/${j.jd}`;
-      }
-    }
-
-    function updateProgressLabel(val) {
-      document.getElementById("progressLabel").textContent = val + "%";
-    }
-
-    function startNewTask() {
-      editingId = null;
-      document.getElementById('formHeader').textContent = 'وظیفه جدید';
-      document.getElementById('submitButton').textContent = '➕ افزودن وظیفه';
-      document.getElementById('taskTitle').value = '';
-      document.getElementById('taskDetails').value = '';
-      document.getElementById('taskDue').value = '';
-      document.getElementById('taskProgress').value = 0;
-      updateProgressLabel(0);
-      document.getElementById('jalaliDisplay').textContent = '';
-      document.getElementById("taskForm").style.display = "block";
-      document.getElementById("taskList").style.display = "none";
-      document.getElementById("searchHeader").style.display = "none";
-    }
-
-    function addTaskToFirestore() {
-      const title = document.getElementById('taskTitle').value.trim();
-      const details = document.getElementById('taskDetails').value;
-      const dueDate = document.getElementById('taskDue').value;
-      const progress = document.getElementById('taskProgress').value;
-      const timestamp = new Date().toISOString();
-      if (!title) return;
-
-      const taskData = { title, details, dueDate, progress, timestamp };
-
-      if (editingId) {
-        db.collection('tasks').doc(editingId).set(taskData).then(() => {
-          editingId = null;
-          renderTasks();
-          document.getElementById("taskForm").style.display = "none";
-          document.getElementById("taskList").style.display = "block";
-          document.getElementById("searchHeader").style.display = "flex";
-        });
-      } else {
-        db.collection('tasks').add(taskData).then(() => {
-          renderTasks();
-          document.getElementById("taskForm").style.display = "none";
-          document.getElementById("taskList").style.display = "block";
-          document.getElementById("searchHeader").style.display = "flex";
-        });
-      }
-    }
-
-    function importTasks(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          try {
-            const tasks = JSON.parse(e.target.result);
-            tasks.forEach(task => {
-              const { id, ...taskData } = task;
-              db.collection("tasks").doc(id).set(taskData);
-            });
-            setTimeout(renderTasks, 1000);
-          } catch (error) {
-            alert("خطا در بازیابی فایل: " + error.message);
-          }
+    <div class="page-header">لیست کارها</div>
+    <div id="searchHeader">
+        <div id="menu">
+            <button onclick="toggleMenu()">⋮</button>
+            <div id="menuDropdown">
+                <button onclick="exportTasks()">📥 پشتیبان‌گیری</button>
+                <button onclick="document.getElementById('importFile').click()">📤 بازیابی</button>
+                <input type="file" id="importFile" onchange="importTasks(event)" style="display: none;" />
+            </div>
+        </div>
+        <input id="searchInput" type="text" placeholder="جستجوی وظایف..." oninput="renderTasks()" />
+    </div>
+    <div id="taskList"></div>
+    <div id="taskForm" style="display: none">
+        <div class="form-header" id="formHeader">وظیفه جدید</div>
+        <input id="taskTitle" type="text" placeholder="مثال: خرید کتاب" />
+        <textarea id="taskDetails" placeholder="توضیحات اضافی..."></textarea>
+        <label for="taskDue">تاریخ سررسید</label>
+        <input id="taskDue" type="date" oninput="updateJalaliDate(this.value)" />
+        <div class="jalali-date" id="jalaliDisplay"></div>
+        <label for="taskProgress">پیشرفت</label>
+        <input type="range" id="taskProgress" min="0" max="100" value="0"
+            oninput="updateProgressLabel(this.value)" />
+        <div class="jalali-date"><span id="progressLabel">0%</span></div>
+        <button id="submitButton" onclick="addTaskToFirestore()">➕ افزودن وظیفه</button>
+    </div>
+    <button id="addBtn" onclick="startNewTask()">+</button>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtov0DKCjIEWw",
+            authDomain: "arontasks.firebaseapp.com",
+            projectId: "arontasks",
+            storageBucket: "arontasks.firebasestorage.app",
+            messagingSenderId: "1027642867381",
+            appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
         };
-        reader.readAsText(file);
-      }
-    }
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        let editingId = null;
 
-    function exportTasks() {
-      db.collection("tasks").get().then(snapshot => {
-        const allTasks = [];
-        snapshot.forEach(doc => {
-          const task = doc.data();
-          task.id = doc.id;
-          allTasks.push(task);
-        });
-        const blob = new Blob([JSON.stringify(allTasks, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "tasks_backup.json";
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    }
+        // Function to check password
+        function checkPassword() {
+            const password = document.getElementById('passwordInput').value;
+            if (password === "aa2024") {
+                document.getElementById('passwordOverlay').style.display = 'none';
+                // Initialize the app here after successful password check
+                renderTasks();
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+            }
+        }
 
-    function renderTasks() {
-      const list = document.getElementById("taskList");
-      list.innerHTML = "";
-      const search = document.getElementById("searchInput").value.toLowerCase();
-      db.collection("tasks").get().then(snapshot => {
-        snapshot.forEach(doc => {
-          const task = doc.data();
-          const id = doc.id;
-          if (search && !(task.title.toLowerCase().includes(search) || task.details.toLowerCase().includes(search))) return;
-          const div = document.createElement("div");
-          div.className = "task";
-          let jalaliText = '';
-          let overdueClass = '';
-          if (task.dueDate) {
-            const [gy, gm, gd] = task.dueDate.split('-').map(Number);
-            const j = toJalali(gy, gm - 1, gd);
-            jalaliText = `${j.jy}/${j.jm}/${j.jd}`;
-            const today = new Date();
-            const due = new Date(task.dueDate);
-            if (today > due) overdueClass = 'overdue';
-          }
-          div.innerHTML = `
+        function toggleMenu() {
+            const menu = document.getElementById("menuDropdown");
+            menu.style.display = menu.style.display === "block" ? "none" : "block";
+        }
+
+        function toJalali(gy, gm, gd) {
+            const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+            let jy, jm, jd;
+            const gy2 = (gm > 1) ? (gy + 1) : gy;
+            const leapG = ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0));
+            let gy_day_no = g_d_m[gm] + gd - 1;
+            if (leapG && gm > 1) gy_day_no++;
+            let days = (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4)
+                - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400) + gy_day_no - 79;
+            const j_np = Math.floor(days / 12053);
+            days %= 12053;
+            jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
+            days %= 1461;
+            if (days >= 366) {
+                jy += Math.floor((days - 1) / 365);
+                days = (days - 1) % 365;
+            }
+            if (days < 186) {
+                jm = 1 + Math.floor(days / 31);
+                jd = 1 + (days % 31);
+            } else {
+                jm = 7 + Math.floor((days - 186) / 30);
+                jd = 1 + ((days - 186) % 30);
+            }
+            return {
+                jy,
+                jm,
+                jd
+            };
+        }
+
+        function updateJalaliDate(gDate) {
+            const parts = gDate.split('-');
+            if (parts.length === 3) {
+                const gy = parseInt(parts[0]),
+                    gm = parseInt(parts[1]) - 1,
+                    gd = parseInt(parts[2]);
+                const j = toJalali(gy, gm, gd);
+                document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${j.jy}/${j.jm}/${j.jd}`;
+            }
+        }
+
+        function updateProgressLabel(val) {
+            document.getElementById("progressLabel").textContent = val + "%";
+        }
+
+        function startNewTask() {
+            editingId = null;
+            document.getElementById('formHeader').textContent = 'وظیفه جدید';
+            document.getElementById('submitButton').textContent = '➕ افزودن وظیفه';
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDetails').value = '';
+            document.getElementById('taskDue').value = '';
+            document.getElementById('taskProgress').value = 0;
+            updateProgressLabel(0);
+            document.getElementById('jalaliDisplay').textContent = '';
+            document.getElementById("taskForm").style.display = "block";
+            document.getElementById("taskList").style.display = "none";
+            document.getElementById("searchHeader").style.display = "none";
+        }
+
+        function addTaskToFirestore() {
+            const title = document.getElementById('taskTitle').value.trim();
+            const details = document.getElementById('taskDetails').value;
+            const dueDate = document.getElementById('taskDue').value;
+            const progress = document.getElementById('taskProgress').value;
+            const timestamp = new Date().toISOString();
+            if (!title) return;
+
+            const taskData = {
+                title,
+                details,
+                dueDate,
+                progress,
+                timestamp
+            };
+
+            if (editingId) {
+                db.collection('tasks').doc(editingId).set(taskData).then(() => {
+                    editingId = null;
+                    renderTasks();
+                    document.getElementById("taskForm").style.display = "none";
+                    document.getElementById("taskList").style.display = "block";
+                    document.getElementById("searchHeader").style.display = "flex";
+                });
+            } else {
+                db.collection('tasks').add(taskData).then(() => {
+                    renderTasks();
+                    document.getElementById("taskForm").style.display = "none";
+                    document.getElementById("taskList").style.display = "block";
+                    document.getElementById("searchHeader").style.display = "flex";
+                });
+            }
+        }
+
+        function importTasks(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const tasks = JSON.parse(e.target.result);
+                        tasks.forEach(task => {
+                            const {
+                                id,
+                                ...taskData
+                            } = task;
+                            db.collection("tasks").doc(id).set(taskData);
+                        });
+                        setTimeout(renderTasks, 1000);
+                    } catch (error) {
+                        alert("خطا در بازیابی فایل: " + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function exportTasks() {
+            db.collection("tasks").get().then(snapshot => {
+                const allTasks = [];
+                snapshot.forEach(doc => {
+                    const task = doc.data();
+                    task.id = doc.id;
+                    allTasks.push(task);
+                });
+                const blob = new Blob([JSON.stringify(allTasks, null, 2)], {
+                    type: "application/json"
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "tasks_backup.json";
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+
+        function renderTasks() {
+            const list = document.getElementById("taskList");
+            list.innerHTML = "";
+            const search = document.getElementById("searchInput").value.toLowerCase();
+            db.collection("tasks").get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const task = doc.data();
+                    const id = doc.id;
+                    if (search && !(task.title.toLowerCase().includes(search) || task.details.toLowerCase().includes(
+                            search))) return;
+                    const div = document.createElement("div");
+                    div.className = "task";
+                    let jalaliText = '';
+                    let overdueClass = '';
+                    if (task.dueDate) {
+                        const [gy, gm, gd] = task.dueDate.split('-').map(Number);
+                        const j = toJalali(gy, gm - 1, gd);
+                        jalaliText = `${j.jy}/${j.jm}/${j.jd}`;
+                        const today = new Date();
+                        const due = new Date(task.dueDate);
+                        if (today > due) overdueClass = 'overdue';
+                    }
+                    div.innerHTML = `
             <strong class="${overdueClass}">${task.title}</strong><br>
             <p>${task.details || ''}</p>
-            ${task.timestamp ? (() => { const d = new Date(task.timestamp); const j = toJalali(d.getFullYear(), d.getMonth(), d.getDate()); return `<small>آخرین ویرایش: ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (${j.jy}/${j.jm}/${j.jd})</small><br>` })() : ''}
+            ${task.timestamp ? (() => {
+                        const d = new Date(task.timestamp);
+                        const j = toJalali(d.getFullYear(), d.getMonth(), d.getDate());
+                        return `<small>آخرین ویرایش: ${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} (${j.jy}/${j.jm}/${j.jd})</small><br>`
+                    })() : ''}
             ${task.dueDate ? `<small>تاریخ سررسید: ${task.dueDate} (${jalaliText})</small><br>` : ''}
             <div class="progress-bar"><div class="progress" style="width: ${task.progress}%"></div></div>
             <small>پیشرفت: ${task.progress}%</small><br>
             <button onclick="editTask('${id}')">✏️ ویرایش</button>
             <button onclick="deleteTask('${id}')">🗑 حذف</button>
           `;
-          list.appendChild(div);
-        });
-      });
-    }
-
-    function editTask(id) {
-      db.collection('tasks').doc(id).get().then(doc => {
-        if (doc.exists) {
-          const task = doc.data();
-          document.getElementById('taskTitle').value = task.title;
-          document.getElementById('taskDetails').value = task.details;
-          document.getElementById('taskDue').value = task.dueDate;
-          document.getElementById('taskProgress').value = task.progress;
-          updateProgressLabel(task.progress);
-          updateJalaliDate(task.dueDate);
-          editingId = id;
-          document.getElementById('formHeader').textContent = 'ویرایش وظیفه';
-          document.getElementById('submitButton').textContent = 'ذخیره تغییرات';
-          document.getElementById("taskForm").style.display = "block";
-          document.getElementById("taskList").style.display = "none";
-          document.getElementById("searchHeader").style.display = "none";
+                    list.appendChild(div);
+                });
+            });
         }
-      });
-    }
 
-    function deleteTask(id) {
-      if (confirm('آیا از حذف این وظیفه مطمئن هستید؟')) {
-        db.collection('tasks').doc(id).delete().then(() => renderTasks());
-      }
-    }
+        function editTask(id) {
+            db.collection('tasks').doc(id).get().then(doc => {
+                if (doc.exists) {
+                    const task = doc.data();
+                    document.getElementById('taskTitle').value = task.title;
+                    document.getElementById('taskDetails').value = task.details;
+                    document.getElementById('taskDue').value = task.dueDate;
+                    document.getElementById('taskProgress').value = task.progress;
+                    updateProgressLabel(task.progress);
+                    updateJalaliDate(task.dueDate);
+                    editingId = id;
+                    document.getElementById('formHeader').textContent = 'ویرایش وظیفه';
+                    document.getElementById('submitButton').textContent = 'ذخیره تغییرات';
+                    document.getElementById("taskForm").style.display = "block";
+                    document.getElementById("taskList").style.display = "none";
+                    document.getElementById("searchHeader").style.display = "none";
+                }
+            });
+        }
 
-    renderTasks();
-  </script>
+        function deleteTask(id) {
+            if (confirm('آیا از حذف این وظیفه مطمئن هستید؟')) {
+                db.collection('tasks').doc(id).delete().then(() => renderTasks());
+            }
+        }
+
+        // Initially, the tasks are not rendered until the password is correct
+        // renderTasks();
+    </script>
 </body>
+
 </html>
