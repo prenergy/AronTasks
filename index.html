@@ -239,37 +239,25 @@
         db.collection('tasks').doc(editingId).set(taskData).then(() => {
           editingId = null;
           renderTasks();
+          document.getElementById("taskForm").style.display = "none";
+          document.getElementById("taskList").style.display = "block";
+          document.getElementById("searchHeader").style.display = "flex";
+        });
+      } else {
+        db.collection('tasks').add(taskData).then(() => {
+          renderTasks();
+          document.getElementById("taskForm").style.display = "none";
+          document.getElementById("taskList").style.display = "block";
+          document.getElementById("searchHeader").style.display = "flex";
+        });
+      }
+    }};
+      if (editingId) {
+        db.collection('tasks').doc(editingId).set(taskData).then(() => {
+          editingId = null;
+          renderTasks();
 
-    function exportTasks() {
-  db.collection("tasks").get().then(snapshot => {
-    const allTasks = [];
-    snapshot.forEach(doc => {
-      const task = doc.data();
-      task.id = doc.id;
-      allTasks.push(task);
-    });
-    const dataStr = JSON.stringify(allTasks, null, 2);
-    const blob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "tasks_backup.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-});
-        const blob = new Blob([JSON.stringify(allTasks, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "tasks_backup.json";
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    }
-
+    
     function importTasks(event) {
       const file = event.target.files[0];
       if (file) {
