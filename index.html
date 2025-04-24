@@ -9,40 +9,27 @@
     input, button, textarea { width: 100%; margin: 10px 0; padding: 10px; font-size: 16px; }
     .task { background: white; margin: 10px 0; padding: 10px; border-radius: 8px; }
     button.action { background: #ddd; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
-    #loginForm, #taskForm { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-    .hidden { display: none; }
+    #taskForm { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
     .progress-bar { height: 10px; background: #ccc; border-radius: 5px; overflow: hidden; }
     .progress { height: 10px; background: #4caf50; }
   </style>
 </head>
 <body>
-  <div id="loginForm">
-    <h3>ورود کاربران مجاز</h3>
-    <input type="email" id="email" placeholder="ایمیل">
-    <input type="password" id="password" placeholder="رمز عبور">
-    <button onclick="login()">ورود</button>
-    <p id="loginError" style="color: red;"></p>
+  <h2>مدیریت وظایف</h2>
+  <div id="taskForm">
+    <input id="taskTitle" placeholder="عنوان وظیفه">
+    <textarea id="taskDetails" placeholder="توضیحات"></textarea>
+    <input type="date" id="taskDue">
+    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+    <div id="progressLabel">پیشرفت: 0%</div>
+    <button onclick="addOrEditTask()" id="submitButton">➕ افزودن وظیفه</button>
   </div>
-
-  <div id="mainApp" class="hidden">
-    <h2>مدیریت وظایف</h2>
-    <div id="taskForm">
-      <input id="taskTitle" placeholder="عنوان وظیفه">
-      <textarea id="taskDetails" placeholder="توضیحات"></textarea>
-      <input type="date" id="taskDue">
-      <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
-      <div id="progressLabel">پیشرفت: 0%</div>
-      <button onclick="addOrEditTask()" id="submitButton">➕ افزودن وظیفه</button>
-    </div>
-    <div id="taskList"></div>
-    <button onclick="logout()">🚪 خروج</button>
-  </div>
+  <div id="taskList"></div>
 
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, collection, addDoc, deleteDoc, updateDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtoV0DKCjIEWw",
@@ -55,9 +42,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
 
-    const allowedUsers = ["user1@example.com", "user2@example.com", "user3@example.com"];
     let editId = null;
 
     document.getElementById('taskProgress').addEventListener('input', (e) => updateProgressLabel(e.target.value));
@@ -66,40 +51,8 @@
       document.getElementById('progressLabel').innerText = `پیشرفت: ${val}%`;
     }
 
-    window.login = function() {
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      signInWithEmailAndPassword(auth, email, password)
-        .then((userCredential) => {
-          const user = userCredential.user;
-          if (!allowedUsers.includes(user.email)) {
-            document.getElementById('loginError').innerText = 'دسترسی شما مجاز نیست';
-            signOut(auth);
-          }
-        })
-        .catch((error) => {
-          document.getElementById('loginError').innerText = 'ورود ناموفق. ایمیل یا رمز اشتباه است';
-        });
-    };
-
-    window.logout = function() {
-      signOut(auth);
-    };
-
-    onAuthStateChanged(auth, (user) => {
-      if (user && allowedUsers.includes(user.email)) {
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
-        loadTasks();
-      } else {
-        document.getElementById('loginForm').classList.remove('hidden');
-        document.getElementById('mainApp').classList.add('hidden');
-      }
-    });
-
-    async function loadTasks() {
+    function loadTasks() {
       const taskList = document.getElementById('taskList');
-      taskList.innerHTML = '';
       onSnapshot(collection(db, 'tasks'), (snapshot) => {
         taskList.innerHTML = '';
         snapshot.forEach(docSnap => {
@@ -156,6 +109,8 @@
         await deleteDoc(doc(db, 'tasks', id));
       }
     }
+
+    loadTasks();
   </script>
 </body>
 </html>
