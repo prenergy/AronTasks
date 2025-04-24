@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>مدیر وظایف آفلاین</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: 'Vazirmatn', sans-serif;
@@ -16,7 +18,6 @@
       direction: rtl;
       font-size: 18px;
     }
-
     .form-header {
       text-align: center;
       color: #fff;
@@ -26,7 +27,6 @@
       font-size: 22px;
       margin-bottom: 0;
     }
-
     .page-header {
       text-align: center;
       color: white;
@@ -37,7 +37,6 @@
       margin-bottom: 15px;
       font-weight: bold;
     }
-
     input,
     button,
     textarea {
@@ -50,14 +49,12 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-
     .task {
       background: white;
       padding: 10px;
       margin: 10px 0;
       border-radius: 8px;
     }
-
     .jalali-date,
     #editTimestamp {
       font-size: 0.85em;
@@ -66,7 +63,6 @@
       margin-bottom: 10px;
       text-align: left;
     }
-
     #addBtn {
       position: fixed;
       left: 20px;
@@ -80,7 +76,6 @@
       font-size: 30px;
       cursor: pointer;
     }
-
     #taskForm {
       display: none;
       background: white;
@@ -88,7 +83,6 @@
       border-radius: 0 0 10px 10px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
-
     #searchHeader {
       display: flex;
       justify-content: space-between;
@@ -99,7 +93,6 @@
       padding: 5px;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
-
     #searchInput {
       flex: 1;
       border: none;
@@ -108,18 +101,15 @@
       background: transparent;
       padding: 10px;
     }
-
     .task strong {
       display: block;
       font-weight: bold;
       margin-bottom: 5px;
     }
-
     .task .details {
       margin-bottom: 10px;
       display: block;
     }
-
     .progress-bar {
       height: 10px;
       background: #ccc;
@@ -127,12 +117,10 @@
       overflow: hidden;
       margin-top: 8px;
     }
-
     .progress {
       height: 10px;
       background: #4caf50;
     }
-
     .task-actions button {
       margin: 5px 0 0 10px;
       padding: 6px 12px;
@@ -161,110 +149,41 @@
     <label for="taskProgress">پیشرفت</label>
     <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)" />
     <div class="jalali-date"><span id="progressLabel">0%</span></div>
-    <button id="submitButton" onclick="addTask()">➕ افزودن وظیفه</button>
+    <button id="submitButton" onclick="addTaskToFirestore()">➕ افزودن وظیفه</button>
   </div>
-  <button id="addBtn" onclick="openNewTaskForm()">+</button>
+  <button id="addBtn" onclick="toggleForm(true)">+</button>
+
   <script>
-    const tasks = JSON.parse(localStorage.getItem("tasks") || "[]");
-    let editIndex = null;
+    const firebaseConfig = {
+      apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtov0DKCjIEWw",
+      authDomain: "arontasks.firebaseapp.com",
+      projectId: "arontasks",
+      storageBucket: "arontasks.firebasestorage.app",
+      messagingSenderId: "1027642867381",
+      appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
-    function toggleForm(show = true) {
-      document.getElementById("taskForm").style.display = show ? "block" : "none";
-    }
+    function addTaskToFirestore() {
+      const title = document.getElementById('taskTitle').value.trim();
+      const details = document.getElementById('taskDetails').value;
+      const dueDate = document.getElementById('taskDue').value;
+      const progress = document.getElementById('taskProgress').value;
+      const timestamp = new Date().toISOString();
 
-    function openNewTaskForm() {
-      resetForm();
-      document.getElementById("formHeader").textContent = "وظیفه جدید";
-      document.getElementById("submitButton").textContent = "➕ افزودن وظیفه";
-      toggleForm(true);
-      editIndex = null;
-    }
-
-    function toJalali(gy, gm, gd) {
-      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-      let jy, jm, jd, gy2 = (gm > 1) ? (gy + 1) : gy;
-      const leapG = (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
-      let gy_day_no = g_d_m[gm] + gd - 1;
-      if (leapG && gm > 1) gy_day_no++;
-      let days = (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4) - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400) + gy_day_no - 79;
-      let j_np = Math.floor(days / 12053);
-      days %= 12053;
-      jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
-      days %= 1461;
-      if (days >= 366) {
-        jy += Math.floor((days - 1) / 365);
-        days = (days - 1) % 365;
-      }
-      if (days < 186) {
-        jm = 1 + Math.floor(days / 31);
-        jd = 1 + (days % 31);
-      } else {
-        jm = 7 + Math.floor((days - 186) / 30);
-        jd = 1 + ((days - 186) % 30);
-      }
-      return { jy, jm, jd };
-    }
-
-    function updateJalaliDate(gDate) {
-      const parts = gDate.split('-');
-      if (parts.length === 3) {
-        const gy = parseInt(parts[0]), gm = parseInt(parts[1]) - 1, gd = parseInt(parts[2]);
-        const g2j = toJalali(gy, gm, gd);
-        document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${g2j.jy}/${g2j.jm}/${g2j.jd}`;
-      } else {
-        document.getElementById('jalaliDisplay').textContent = '';
-      }
-    }
-
-    function updateProgressLabel(val) {
-      document.getElementById("progressLabel").textContent = val + "%";
-    }
-
-    function updateLastEdited() {
-      const now = new Date();
-      const yyyy = now.getFullYear(), mm = String(now.getMonth() + 1).padStart(2, '0'), dd = String(now.getDate()).padStart(2, '0');
-      const hh = String(now.getHours()).padStart(2, '0'), mi = String(now.getMinutes()).padStart(2, '0'), ss = String(now.getSeconds()).padStart(2, '0');
-      const g2j = toJalali(now.getFullYear(), now.getMonth(), now.getDate());
-      const text = `آخرین ویرایش: ${yyyy}/${mm}/${dd} - ${hh}:${mi}:${ss} (${g2j.jy}/${g2j.jm}/${g2j.jd})`;
-      document.getElementById("editTimestamp").textContent = text;
-    }
-
-    function addTask() {
-      const title = document.getElementById("taskTitle").value.trim();
-      const details = document.getElementById("taskDetails").value.trim();
-      const due = document.getElementById("taskDue").value;
-      const progress = document.getElementById("taskProgress").value;
       if (!title) return;
-      const now = new Date();
-      const task = {
+
+      db.collection('tasks').add({
         title,
         details,
-        due,
+        dueDate,
         progress,
-        edited: now.toISOString()
-      };
-      if (editIndex !== null) {
-        tasks[editIndex] = task;
-        document.getElementById("submitButton").textContent = "➕ افزودن وظیفه";
-        document.getElementById("formHeader").textContent = "وظیفه جدید";
-        editIndex = null;
-      } else {
-        tasks.push(task);
-      }
-      localStorage.setItem("tasks", JSON.stringify(tasks));
-      resetForm();
-      toggleForm(false);
-      renderTasks();
-    }
-
-    function resetForm() {
-      document.getElementById("taskTitle").value = "";
-      document.getElementById("taskDetails").value = "";
-      document.getElementById("taskDue").value = "";
-      document.getElementById("taskProgress").value = 0;
-      document.getElementById("progressLabel").textContent = "0%";
-      document.getElementById("jalaliDisplay").textContent = "";
-      document.getElementById("editTimestamp").textContent = "";
+        timestamp
+      }).then(() => {
+        alert('وظیفه با موفقیت ثبت شد!');
+        toggleForm(false);
+      });
     }
   </script>
 </body>
