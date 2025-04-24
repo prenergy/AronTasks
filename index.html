@@ -180,6 +180,55 @@
       editIndex = null;
     }
 
+    function toJalali(gy, gm, gd) {
+      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+      let jy, jm, jd, gy2 = (gm > 1) ? (gy + 1) : gy;
+      const leapG = (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
+      let gy_day_no = g_d_m[gm] + gd - 1;
+      if (leapG && gm > 1) gy_day_no++;
+      let days = (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4) - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400) + gy_day_no - 79;
+      let j_np = Math.floor(days / 12053);
+      days %= 12053;
+      jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
+      days %= 1461;
+      if (days >= 366) {
+        jy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+      }
+      if (days < 186) {
+        jm = 1 + Math.floor(days / 31);
+        jd = 1 + (days % 31);
+      } else {
+        jm = 7 + Math.floor((days - 186) / 30);
+        jd = 1 + ((days - 186) % 30);
+      }
+      return { jy, jm, jd };
+    }
+
+    function updateJalaliDate(gDate) {
+      const parts = gDate.split('-');
+      if (parts.length === 3) {
+        const gy = parseInt(parts[0]), gm = parseInt(parts[1]) - 1, gd = parseInt(parts[2]);
+        const g2j = toJalali(gy, gm, gd);
+        document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${g2j.jy}/${g2j.jm}/${g2j.jd}`;
+      } else {
+        document.getElementById('jalaliDisplay').textContent = '';
+      }
+    }
+
+    function updateProgressLabel(val) {
+      document.getElementById("progressLabel").textContent = val + "%";
+    }
+
+    function updateLastEdited() {
+      const now = new Date();
+      const yyyy = now.getFullYear(), mm = String(now.getMonth() + 1).padStart(2, '0'), dd = String(now.getDate()).padStart(2, '0');
+      const hh = String(now.getHours()).padStart(2, '0'), mi = String(now.getMinutes()).padStart(2, '0'), ss = String(now.getSeconds()).padStart(2, '0');
+      const g2j = toJalali(now.getFullYear(), now.getMonth(), now.getDate());
+      const text = `آخرین ویرایش: ${yyyy}/${mm}/${dd} - ${hh}:${mi}:${ss} (${g2j.jy}/${g2j.jm}/${g2j.jd})`;
+      document.getElementById("editTimestamp").textContent = text;
+    }
+
     function addTask() {
       const title = document.getElementById("taskTitle").value.trim();
       const details = document.getElementById("taskDetails").value.trim();
@@ -217,8 +266,6 @@
       document.getElementById("jalaliDisplay").textContent = "";
       document.getElementById("editTimestamp").textContent = "";
     }
-
-    // The rest remains unchanged
   </script>
 </body>
 
