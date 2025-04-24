@@ -228,18 +228,26 @@
     }
 
     function addTaskToFirestore() {
-      const title = document.getElementById('taskTitle').value.trim();
-      const details = document.getElementById('taskDetails').value;
-      const dueDate = document.getElementById('taskDue').value;
-      const progress = document.getElementById('taskProgress').value;
-      const timestamp = new Date().toISOString();
-      if (!title) return;
-      const taskData = { title, details, dueDate, progress, timestamp };
-      if (editingId) {
-        db.collection('tasks').doc(editingId).set(taskData).then(() => {
-          editingId = null;
-          renderTasks();
-          document.getElementById("taskForm").style.display = "none";
+  const title = document.getElementById('taskTitle').value.trim();
+  const details = document.getElementById('taskDetails').value;
+  const dueDate = document.getElementById('taskDue').value;
+  const progress = document.getElementById('taskProgress').value;
+  const timestamp = new Date().toISOString();
+  if (!title) return;
+  const taskData = { title, details, dueDate, progress, timestamp };
+  if (editingId) {
+    db.collection('tasks').doc(editingId).set(taskData).then(() => {
+      editingId = null;
+      renderTasks();
+      document.getElementById("taskForm").style.display = "none";
+  });
+  } else {
+    db.collection('tasks').add(taskData).then(() => {
+      renderTasks();
+      document.getElementById("taskForm").style.display = "none";
+  });
+  }
+
           document.getElementById("taskList").style.display = "block";
           document.getElementById("searchHeader").style.display = "flex";
         });
