@@ -142,7 +142,7 @@
       form.style.display = show ? "block" : "none";
       list.style.display = show ? "none" : "block";
       header.style.display = show ? "none" : "flex";
-      if (show) resetForm();
+      if (show) document.getElementById('formHeader').textContent = 'وظیفه جدید'; resetForm();
     }
 
     function resetForm() {
@@ -238,7 +238,7 @@
       updateJalaliDate(task.dueDate);
       document.getElementById('submitButton').textContent = 'ذخیره تغییرات';
       editingId = id;
-      toggleForm(true);
+      document.getElementById('formHeader').textContent = 'ویرایش وظیفه'; toggleForm(true);
     }
 
     function deleteTask(id) {
