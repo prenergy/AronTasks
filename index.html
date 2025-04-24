@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="fa">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدیریت وظایف آفلاین</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مدیر وظایف</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: 'Vazirmatn', sans-serif;
@@ -16,17 +17,6 @@
       direction: rtl;
       font-size: 18px;
     }
-
-    .form-header {
-      text-align: center;
-      color: #fff;
-      background: #5a47d7;
-      padding: 15px;
-      border-radius: 10px 10px 0 0;
-      font-size: 22px;
-      margin-bottom: 0;
-    }
-
     .page-header {
       text-align: center;
       color: white;
@@ -37,7 +27,24 @@
       margin-bottom: 15px;
       font-weight: bold;
     }
-
+    #searchHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: white;
+      border-radius: 8px;
+      padding: 5px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+    #searchInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      background: transparent;
+      padding: 10px;
+    }
     input,
     button,
     textarea {
@@ -50,26 +57,6 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
-
-    .task {
-      background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .jalali-date,
-    #editTimestamp {
-      font-size: 0.85em;
-      color: #777;
-      margin-top: -5px;
-      margin-bottom: 10px;
-      text-align: left;
-    }
-
     #addBtn {
       position: fixed;
       left: 20px;
@@ -83,130 +70,65 @@
       font-size: 30px;
       cursor: pointer;
     }
-
     #taskForm {
       display: none;
       background: white;
       padding: 20px;
-      border-radius: 0 0 10px 10px;
+      border-radius: 10px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
-
-    #searchHeader {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      background: white;
-      border-radius: 8px;
-      padding: 5px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    #searchInput {
-      flex: 1;
-      border: none;
-      outline: none;
-      font-size: 16px;
-      background: transparent;
-      padding: 10px;
-    }
-
-    .task strong {
-      display: block;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-
-    .task .details {
-      margin-bottom: 10px;
-      display: block;
-    }
-
-    .progress-bar {
-      height: 10px;
-      background: #ccc;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-top: 8px;
-    }
-
-    .progress {
-      height: 10px;
-      background: #4caf50;
-    }
-
-    .task-actions button {
-      margin: 5px 0 0 10px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: none;
-      background: #eee;
-      cursor: pointer;
+    .jalali-date {
+      font-size: 0.85em;
+      color: #777;
+      text-align: left;
     }
   </style>
 </head>
-
 <body>
   <div class="page-header">لیست کارها</div>
   <div id="searchHeader">
-    <input id="searchInput" type="text" placeholder="جستجوی وظایف..." oninput="renderTasks()">
+    <input id="searchInput" type="text" placeholder="جستجوی وظایف..." oninput="renderTasks()" />
   </div>
   <div id="taskList"></div>
   <div id="taskForm">
     <div class="form-header" id="formHeader">وظیفه جدید</div>
-    <input id="taskTitle" type="text" placeholder="مثال: خرید کتاب">
+    <input id="taskTitle" type="text" placeholder="مثال: خرید کتاب" />
     <textarea id="taskDetails" placeholder="توضیحات اضافی..." oninput="updateLastEdited()"></textarea>
     <div id="editTimestamp" class="jalali-date"></div>
     <label for="taskDue">تاریخ سررسید</label>
-    <input id="taskDue" type="date" oninput="updateJalaliDate(this.value)">
+    <input id="taskDue" type="date" oninput="updateJalaliDate(this.value)" />
     <div class="jalali-date" id="jalaliDisplay"></div>
     <label for="taskProgress">پیشرفت</label>
-    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)" />
     <div class="jalali-date"><span id="progressLabel">0%</span></div>
     <button id="submitButton" onclick="addTaskToFirestore()">➕ افزودن وظیفه</button>
   </div>
   <button id="addBtn" onclick="toggleForm(true)">+</button>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      query,
-      orderBy,
-      deleteDoc,
-      doc,
-      updateDoc
-    } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-
+  <!-- کد جاوااسکریپت -->
+  <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtov0DKCjIEWw",
       authDomain: "arontasks.firebaseapp.com",
       projectId: "arontasks",
-      storageBucket: "arontasks.appspot.com",
+      storageBucket: "arontasks.firebasestorage.app",
       messagingSenderId: "1027642867381",
       appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
     };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     function toggleForm(show) {
-      const form = document.getElementById('taskForm');
-      if (show) {
-        form.style.display = 'block';
-        document.getElementById('submitButton').textContent = '➕ افزودن وظیفه';
-        document.getElementById('formHeader').textContent = 'وظیفه جدید';
-      } else {
-        form.style.display = 'none';
-        clearForm();
-      }
+      const form = document.getElementById("taskForm");
+      const list = document.getElementById("taskList");
+      const header = document.getElementById("searchHeader");
+      form.style.display = show ? "block" : "none";
+      list.style.display = show ? "none" : "block";
+      header.style.display = show ? "none" : "flex";
+      if (show) resetForm();
     }
 
-    function clearForm() {
+    function resetForm() {
       document.getElementById('taskTitle').value = '';
       document.getElementById('taskDetails').value = '';
       document.getElementById('taskDue').value = '';
@@ -216,188 +138,69 @@
       document.getElementById('editTimestamp').textContent = '';
     }
 
-    function updateProgressLabel(value) {
-      document.getElementById('progressLabel').textContent = value + '%';
-    }
-
-    function updateJalaliDate(dateString) {
-      if (!dateString) {
+    function updateJalaliDate(gDate) {
+      const parts = gDate.split('-');
+      if (parts.length === 3) {
+        const gy = parseInt(parts[0]), gm = parseInt(parts[1]) - 1, gd = parseInt(parts[2]);
+        const j = toJalali(gy, gm, gd);
+        document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${j.jy}/${j.jm}/${j.jd}`;
+      } else {
         document.getElementById('jalaliDisplay').textContent = '';
-        return;
       }
-      const parts = dateString.split('-');
-      const gy = parseInt(parts[0]);
-      const gm = parseInt(parts[1]);
-      const gd = parseInt(parts[2]);
-
-      function toJalali(gy, gm, gd) {
-        return `${gy - 621}/${gm}/${gd}`;
-      }
-
-      const jalaliDate = toJalali(gy, gm, gd);
-      document.getElementById('jalaliDisplay').textContent = 'تاریخ شمسی: ' + jalaliDate;
     }
 
-    async function addTaskToFirestore() {
+    function updateProgressLabel(val) {
+      document.getElementById("progressLabel").textContent = val + "%";
+    }
+
+    function addTaskToFirestore() {
       const title = document.getElementById('taskTitle').value.trim();
-      const details = document.getElementById('taskDetails').value.trim();
+      const details = document.getElementById('taskDetails').value;
       const dueDate = document.getElementById('taskDue').value;
-      const progress = parseInt(document.getElementById('taskProgress').value);
+      const progress = document.getElementById('taskProgress').value;
       const timestamp = new Date().toISOString();
-      const taskId = document.getElementById('submitButton').dataset.id;
 
-      if (!title) {
-        alert('لطفاً عنوان وظیفه را وارد کنید.');
-        return;
-      }
+      if (!title) return;
 
-      try {
-        if (taskId) {
-          // ویرایش وظیفه موجود
-          const taskDocRef = doc(db, 'tasks', taskId);
-          await updateDoc(taskDocRef, {
-            title,
-            details,
-            dueDate,
-            progress,
-            timestamp
-          });
-          alert('وظیفه با موفقیت ویرایش شد!');
-        } else {
-          // افزودن وظیفه جدید
-          await addDoc(collection(db, 'tasks'), {
-            title,
-            details,
-            dueDate,
-            progress,
-            timestamp
-          });
-          alert('وظیفه با موفقیت ثبت شد!');
-        }
+      db.collection('tasks').add({
+        title,
+        details,
+        dueDate,
+        progress,
+        timestamp
+      }).then(() => {
+        alert('وظیفه با موفقیت ثبت شد!');
         toggleForm(false);
-        renderTasks();
-      } catch (error) {
-        alert('خطا در ثبت وظیفه: ' + error.message);
-      }
-    }
-
-    async function renderTasks() {
-      const taskList = document.getElementById('taskList');
-      taskList.innerHTML = 'در حال بارگذاری...';
-
-      const searchTerm = document.getElementById('searchInput').value.trim();
-
-      try {
-        const tasksCol = collection(db, 'tasks');
-        let tasks = [];
-
-        if (searchTerm) {
-          const querySnapshot = await getDocs(query(tasksCol, orderBy('timestamp', 'desc')));
-          querySnapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.title && data.title.includes(searchTerm)) {
-              tasks.push({
-                id: doc.id,
-                ...data
-              });
-            }
-          });
-        } else {
-          const querySnapshot = await getDocs(query(tasksCol, orderBy('timestamp', 'desc')));
-          querySnapshot.forEach(doc => {
-            tasks.push({
-              id: doc.id,
-              ...doc.data()
-            });
-          });
-        }
-
-        displayTasks(tasks);
-      } catch (error) {
-        taskList.innerHTML = 'خطا در بارگذاری وظایف: ' + error.message;
-      }
-    }
-
-    function displayTasks(tasks) {
-      const taskList = document.getElementById('taskList');
-      if (tasks.length === 0) {
-        taskList.innerHTML = '<p>هیچ وظیفه‌ای یافت نشد.</p>';
-        return;
-      }
-      taskList.innerHTML = '';
-      tasks.forEach(task => {
-        const div = document.createElement('div');
-        div.className = 'task';
-
-        div.innerHTML = `
-          <div>
-            <strong>${task.title}</strong>
-            <span class="details">${task.details || ''}</span>
-            <div>تاریخ سررسید: ${task.dueDate || 'ندارد'}</div>
-            <div>پیشرفت: ${task.progress || 0}%</div>
-            <div class="jalali-date">ثبت شده در: ${new Date(task.timestamp).toLocaleString('fa-IR')}</div>
-          </div>
-          <div class="task-actions">
-            <button onclick="editTask('${task.id}')">ویرایش</button>
-            <button onclick="deleteTask('${task.id}')">حذف</button>
-          </div>
-        `;
-
-        taskList.appendChild(div);
+      }).catch((error) => {
+        alert('خطا در ذخیره وظیفه: ' + error.message);
       });
     }
 
-    async function deleteTask(id) {
-      if (confirm('آیا مطمئن هستید می‌خواهید این وظیفه را حذف کنید؟')) {
-        try {
-          const taskDocRef = doc(db, 'tasks', id);
-          await deleteDoc(taskDocRef);
-          alert('وظیفه با موفقیت حذف شد!');
-          renderTasks();
-        } catch (error) {
-          alert('خطا در حذف وظیفه: ' + error.message);
-        }
+    function toJalali(gy, gm, gd) {
+      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+      let jy, jm, jd, gy2 = (gm > 1) ? (gy + 1) : gy;
+      const leapG = (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
+      let gy_day_no = g_d_m[gm] + gd - 1;
+      if (leapG && gm > 1) gy_day_no++;
+      let days = (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4)
+          - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400) + gy_day_no - 79;
+      let j_np = Math.floor(days / 12053);
+      days %= 12053;
+      jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
+      days %= 1461;
+      if (days >= 366) {
+        jy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
       }
-    }
-
-    async function editTask(id) {
-      const taskDocRef = doc(db, 'tasks', id);
-      const taskSnapshot = await getDoc(taskDocRef);
-
-      if (taskSnapshot.exists()) {
-        const taskData = taskSnapshot.data();
-        document.getElementById('taskTitle').value = taskData.title;
-        document.getElementById('taskDetails').value = taskData.details;
-        document.getElementById('taskDue').value = taskData.dueDate;
-        document.getElementById('taskProgress').value = taskData.progress;
-        updateProgressLabel(taskData.progress);
-        document.getElementById('submitButton').textContent = '🔄 به‌روزرسانی وظیفه';
-        document.getElementById('submitButton').dataset.id = id;
-        document.getElementById('formHeader').textContent = 'ویرایش وظیفه';
-        toggleForm(true);
+      if (days < 186) {
+        jm = 1 + Math.floor(days / 31);
+        jd = 1 + (days % 31);
       } else {
-        alert('وظیفه مورد نظر یافت نشد.');
+        jm = 7 + Math.floor((days - 186) / 30);
+        jd = 1 + ((days - 186) % 30);
       }
+      return { jy, jm, jd };
     }
-
-    function updateLastEdited() {
-      const now = new Date();
-      document.getElementById('editTimestamp').textContent = 'آخرین ویرایش: ' + now.toLocaleString('fa-IR');
-    }
-
-    window.toggleForm = toggleForm;
-    window.addTaskToFirestore = addTaskToFirestore;
-    window.renderTasks = renderTasks;
-    window.updateProgressLabel = updateProgressLabel;
-    window.updateJalaliDate = updateJalaliDate;
-    window.updateLastEdited = updateLastEdited;
-    window.deleteTask = deleteTask;
-    window.editTask = editTask;
-
-    window.addEventListener('DOMContentLoaded', () => {
-      renderTasks();
-    });
   </script>
 </body>
-
 </html>
