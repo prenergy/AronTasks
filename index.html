@@ -239,6 +239,44 @@
         db.collection('tasks').doc(editingId).set(taskData).then(() => {
           editingId = null;
           renderTasks();
+
+    function exportTasks() {
+      db.collection("tasks").get().then(snapshot => {
+        const allTasks = [];
+        snapshot.forEach(doc => {
+          const task = doc.data();
+          task.id = doc.id;
+          allTasks.push(task);
+        });
+        const blob = new Blob([JSON.stringify(allTasks, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "tasks_backup.json";
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    function importTasks(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const tasks = JSON.parse(e.target.result);
+            tasks.forEach(task => {
+              const { id, ...taskData } = task;
+              db.collection("tasks").doc(id).set(taskData);
+            });
+            setTimeout(renderTasks, 1000);
+          } catch (error) {
+            alert("خطا در بازیابی فایل: " + error.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
           document.getElementById("taskForm").style.display = "none";
           document.getElementById("taskList").style.display = "block";
           document.getElementById("searchHeader").style.display = "flex";
