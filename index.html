@@ -1,157 +1,228 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدیر وظایف</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>مدیریت وظایف</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <style>
     body {
       font-family: 'Vazirmatn', sans-serif;
       background: #f2f2f2;
       padding: 20px;
+      direction: rtl;
+      font-size: 16px;
+    }
+
+    .container {
       max-width: 700px;
       margin: auto;
-      direction: rtl;
-    }
-    .page-header {
-      text-align: center;
-      color: white;
-      background: #5a47d7;
-      padding: 15px;
+      background: #fff;
+      padding: 20px;
       border-radius: 10px;
-      font-size: 22px;
-      font-weight: bold;
     }
-    input, textarea, button {
-      font-family: 'Vazirmatn', sans-serif;
+
+    h1 {
+      text-align: center;
+      color: #5a47d7;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    input,
+    textarea,
+    button {
       width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      box-sizing: border-box;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    .task {
-      background: white;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-    }
-    .task button {
       margin-top: 5px;
-      margin-left: 10px;
-      background: #eee;
-      border: none;
+      padding: 10px;
+      font-family: 'Vazirmatn', sans-serif;
+      font-size: 16px;
       border-radius: 6px;
-      padding: 6px 12px;
-      cursor: pointer;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
     }
+
+    #progressLabel,
+    .jalali-date {
+      margin-top: 5px;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .task-card {
+      background: #fff;
+      border-radius: 8px;
+      margin-top: 15px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
     .progress-bar {
       height: 10px;
       background: #ccc;
       border-radius: 5px;
       overflow: hidden;
-      margin-top: 8px;
+      margin-top: 10px;
     }
+
     .progress {
       height: 10px;
       background: #4caf50;
     }
+
+    .task-actions button {
+      width: 48%;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 4%;
+    }
   </style>
 </head>
-<body>
-  <div class="page-header">مدیریت وظایف</div>
-  <input id="title" placeholder="عنوان وظیفه">
-  <textarea id="description" placeholder="توضیحات"></textarea>
-  <input type="date" id="due">
-  <div id="jalaliDate" style="font-size:14px;color:#555;"></div>
-  <input type="range" id="progress" min="0" max="100" value="0" oninput="document.getElementById('progressLabel').innerText = this.value + '%'">
-  <div id="progressLabel">0%</div>
-  <button onclick="addTask()">➕ افزودن وظیفه</button>
 
-  <div id="tasks"></div>
+<body>
+  <div class="container">
+    <h1>مدیریت وظایف</h1>
+    <label>عنوان وظیفه</label>
+    <input type="text" id="taskTitle" placeholder="مثال: خرید کتاب">
+
+    <label>توضیحات</label>
+    <textarea id="taskDetails" placeholder="توضیحات اضافی..."></textarea>
+
+    <div class="jalali-date" id="editTimestamp"></div>
+
+    <label>تاریخ سررسید</label>
+    <input type="date" id="taskDue" onchange="updateJalaliDate(this.value)">
+    <div class="jalali-date" id="jalaliDisplay"></div>
+
+    <label>پیشرفت</label>
+    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+    <div id="progressLabel">0%</div>
+
+    <button onclick="saveTask()" id="submitBtn">افزودن وظیفه ➕</button>
+
+    <div id="taskList"></div>
+  </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSy...", // 🔐 جایگزین کن
-      authDomain: "your-project.firebaseapp.com",
-      projectId: "your-project",
-      storageBucket: "your-project.appspot.com",
-      messagingSenderId: "...",
-      appId: "..."
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const tasksRef = db.collection("tasks");
+    let tasks = [];
+    let editIndex = -1;
 
     function toJalali(gy, gm, gd) {
-      const g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
-      let jy = gy - 621, days = g_d_m[gm] + gd;
-      if (gm > 1 && ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0))) days++;
-      let march = (gy % 4 === 0) ? 21 : 20;
-      days += (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4) - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400);
-      days -= 79;
-      const j_np = Math.floor(days / 12053);
+      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+      let jy, jm, jd;
+      gy = parseInt(gy);
+      gm = parseInt(gm);
+      gd = parseInt(gd);
+      let gy2 = (gm > 1) ? (gy + 1) : gy;
+      let days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4)
+        - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + g_d_m[gm];
+      jy = -1595 + (33 * Math.floor(days / 12053));
       days %= 12053;
-      jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
+      jy += 4 * Math.floor(days / 1461);
       days %= 1461;
-      if (days >= 366) jy += Math.floor((days - 1) / 365), days = (days - 1) % 365;
-      const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-      const jd = (days < 186) ? 1 + days % 31 : 1 + (days - 186) % 30;
+      if (days > 365) {
+        jy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+      }
+      jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+      jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
       return `${jy}/${jm}/${jd}`;
     }
 
-    document.getElementById('due').addEventListener('change', function() {
-      const d = new Date(this.value);
-      const jalali = toJalali(d.getFullYear(), d.getMonth(), d.getDate());
-      document.getElementById('jalaliDate').innerText = 'تاریخ جلالی: ' + jalali;
-    });
+    function updateJalaliDate(gDate) {
+      const parts = gDate.split('-');
+      if (parts.length === 3) {
+        const jalali = toJalali(parts[0], parts[1] - 1, parts[2]);
+        document.getElementById("jalaliDisplay").innerText = `تاریخ جلالی: ${jalali}`;
+      }
+    }
+
+    function updateProgressLabel(val) {
+      document.getElementById("progressLabel").innerText = val + '%';
+    }
+
+    function saveTask() {
+      const title = document.getElementById("taskTitle").value;
+      const details = document.getElementById("taskDetails").value;
+      const due = document.getElementById("taskDue").value;
+      const progress = document.getElementById("taskProgress").value;
+      const task = { title, details, due, progress };
+
+      if (editIndex > -1) {
+        tasks[editIndex] = task;
+        editIndex = -1;
+        document.getElementById("submitBtn").innerText = 'افزودن وظیفه ➕';
+      } else {
+        tasks.push(task);
+      }
+
+      renderTasks();
+      resetForm();
+    }
 
     function renderTasks() {
-      tasksRef.orderBy("created", "desc").onSnapshot(snapshot => {
-        const tasks = document.getElementById('tasks');
-        tasks.innerHTML = '';
-        snapshot.forEach(doc => {
-          const task = doc.data();
-          const div = document.createElement('div');
-          div.className = 'task';
-          div.innerHTML = `
-            <strong>${task.title}</strong><br>
-            ${task.description}<br>
-            ${task.due}<br>
-            <div class="progress-bar"><div class="progress" style="width: ${task.progress}%"></div></div>
-            <small>پیشرفت: ${task.progress}%</small><br>
-            <button onclick="editTask('${doc.id}', ${task.progress})">✏️ ویرایش</button>
-            <button onclick="deleteTask('${doc.id}')">🗑 حذف</button>
-          `;
-          tasks.appendChild(div);
-        });
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+      tasks.forEach((t, i) => {
+        const card = document.createElement("div");
+        card.className = "task-card";
+        const jalali = t.due ? toJalali(t.due.split('-')[0], t.due.split('-')[1] - 1, t.due.split('-')[2]) : '';
+        card.innerHTML = `
+          <h3>${t.title}</h3>
+          <p>${t.details}</p>
+          <p>${t.due || ''}</p>
+          <div class="progress-bar">
+            <div class="progress" style="width:${t.progress}%"></div>
+          </div>
+          <p>پیشرفت: ${t.progress}%</p>
+          <div class="task-actions">
+            <button onclick="editTask(${i})">✏️ ویرایش</button>
+            <button onclick="deleteTask(${i})">🗑 حذف</button>
+          </div>
+        `;
+        list.appendChild(card);
       });
     }
 
-    function addTask() {
-      const title = document.getElementById('title').value;
-      const description = document.getElementById('description').value;
-      const due = document.getElementById('due').value;
-      const progress = document.getElementById('progress').value;
-      if (!title) return;
-      tasksRef.add({ title, description, due, progress, created: new Date() });
+    function editTask(index) {
+      const task = tasks[index];
+      document.getElementById("taskTitle").value = task.title;
+      document.getElementById("taskDetails").value = task.details;
+      document.getElementById("taskDue").value = task.due;
+      document.getElementById("taskProgress").value = task.progress;
+      updateProgressLabel(task.progress);
+      updateJalaliDate(task.due);
+      editIndex = index;
+      document.getElementById("submitBtn").innerText = 'ذخیره تغییرات';
     }
 
-    function deleteTask(id) {
-      if (confirm('حذف شود؟')) tasksRef.doc(id).delete();
+    function deleteTask(index) {
+      if (confirm('آیا مطمئنید؟')) {
+        tasks.splice(index, 1);
+        renderTasks();
+      }
     }
 
-    function editTask(id, currentProgress) {
-      const newProgress = prompt('درصد جدید پیشرفت؟', currentProgress);
-      if (newProgress !== null) tasksRef.doc(id).update({ progress: parseInt(newProgress) });
+    function resetForm() {
+      document.getElementById("taskTitle").value = "";
+      document.getElementById("taskDetails").value = "";
+      document.getElementById("taskDue").value = "";
+      document.getElementById("taskProgress").value = 0;
+      document.getElementById("progressLabel").innerText = '0%';
+      document.getElementById("jalaliDisplay").innerText = '';
+      document.getElementById("editTimestamp").innerText = '';
     }
 
     renderTasks();
   </script>
 </body>
+
 </html>
