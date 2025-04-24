@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="fa">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مدیر وظایف</title>
+  <title>مدیر وظایف آفلاین</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
@@ -17,6 +18,17 @@
       direction: rtl;
       font-size: 18px;
     }
+
+    .form-header {
+      text-align: center;
+      color: #fff;
+      background: #5a47d7;
+      padding: 15px;
+      border-radius: 10px 10px 0 0;
+      font-size: 22px;
+      margin-bottom: 0;
+    }
+
     .page-header {
       text-align: center;
       color: white;
@@ -27,24 +39,7 @@
       margin-bottom: 15px;
       font-weight: bold;
     }
-    #searchHeader {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      background: white;
-      border-radius: 8px;
-      padding: 5px;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    }
-    #searchInput {
-      flex: 1;
-      border: none;
-      outline: none;
-      font-size: 16px;
-      background: transparent;
-      padding: 10px;
-    }
+
     input,
     button,
     textarea {
@@ -57,6 +52,23 @@
       border-radius: 8px;
       border: 1px solid #ccc;
     }
+
+    .task {
+      background: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+
+    .jalali-date,
+    #editTimestamp {
+      font-size: 0.85em;
+      color: #777;
+      margin-top: -5px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
     #addBtn {
       position: fixed;
       left: 20px;
@@ -70,20 +82,70 @@
       font-size: 30px;
       cursor: pointer;
     }
+
     #taskForm {
       display: none;
       background: white;
       padding: 20px;
-      border-radius: 10px;
+      border-radius: 0 0 10px 10px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
-    .jalali-date {
-      font-size: 0.85em;
-      color: #777;
-      text-align: left;
+
+    #searchHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: white;
+      border-radius: 8px;
+      padding: 5px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #searchInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      background: transparent;
+      padding: 10px;
+    }
+
+    .task strong {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .task .details {
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress {
+      height: 10px;
+      background: #4caf50;
+    }
+
+    .task-actions button {
+      margin: 5px 0 0 10px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #eee;
+      cursor: pointer;
     }
   </style>
 </head>
+
 <body>
   <div class="page-header">لیست کارها</div>
   <div id="searchHeader">
@@ -105,53 +167,17 @@
   </div>
   <button id="addBtn" onclick="toggleForm(true)">+</button>
 
-  <!-- کد جاوااسکریپت -->
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyDpDvuAzs_r5ZWacFIKAZXtov0DKCjIEWw",
       authDomain: "arontasks.firebaseapp.com",
       projectId: "arontasks",
-      storageBucket: "arontasks.firebasestorage.app",
+      storageBucket: "arontasks.appspot.com",
       messagingSenderId: "1027642867381",
       appId: "1:1027642867381:web:a9ef08b56de58c1dde88fc"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
-    function toggleForm(show) {
-      const form = document.getElementById("taskForm");
-      const list = document.getElementById("taskList");
-      const header = document.getElementById("searchHeader");
-      form.style.display = show ? "block" : "none";
-      list.style.display = show ? "none" : "block";
-      header.style.display = show ? "none" : "flex";
-      if (show) resetForm();
-    }
-
-    function resetForm() {
-      document.getElementById('taskTitle').value = '';
-      document.getElementById('taskDetails').value = '';
-      document.getElementById('taskDue').value = '';
-      document.getElementById('taskProgress').value = 0;
-      updateProgressLabel(0);
-      document.getElementById('jalaliDisplay').textContent = '';
-      document.getElementById('editTimestamp').textContent = '';
-    }
-
-    function updateJalaliDate(gDate) {
-      const parts = gDate.split('-');
-      if (parts.length === 3) {
-        const gy = parseInt(parts[0]), gm = parseInt(parts[1]) - 1, gd = parseInt(parts[2]);
-        const j = toJalali(gy, gm, gd);
-        document.getElementById('jalaliDisplay').textContent = `تاریخ جلالی: ${j.jy}/${j.jm}/${j.jd}`;
-      } else {
-        document.getElementById('jalaliDisplay').textContent = '';
-      }
-    }
-
-    function updateProgressLabel(val) {
-      document.getElementById("progressLabel").textContent = val + "%";
-    }
 
     function addTaskToFirestore() {
       const title = document.getElementById('taskTitle').value.trim();
@@ -169,38 +195,56 @@
         progress,
         timestamp
       }).then(() => {
-        
+        alert('وظیفه با موفقیت ثبت شد!');
         toggleForm(false);
+        renderTasks(); // Refresh task list after adding a new task
       }).catch((error) => {
-        alert('خطا در ذخیره وظیفه: ' + error.message);
+        console.error("Error adding task: ", error);
+        alert('خطا در ثبت وظیفه: ' + error.message);
       });
     }
 
-    function toJalali(gy, gm, gd) {
-      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-      let jy, jm, jd, gy2 = (gm > 1) ? (gy + 1) : gy;
-      const leapG = (gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0);
-      let gy_day_no = g_d_m[gm] + gd - 1;
-      if (leapG && gm > 1) gy_day_no++;
-      let days = (gy - 1600) * 365 + Math.floor((gy - 1600 + 3) / 4)
-          - Math.floor((gy - 1600 + 99) / 100) + Math.floor((gy - 1600 + 399) / 400) + gy_day_no - 79;
-      let j_np = Math.floor(days / 12053);
-      days %= 12053;
-      jy = 979 + 33 * j_np + 4 * Math.floor(days / 1461);
-      days %= 1461;
-      if (days >= 366) {
-        jy += Math.floor((days - 1) / 365);
-        days = (days - 1) % 365;
-      }
-      if (days < 186) {
-        jm = 1 + Math.floor(days / 31);
-        jd = 1 + (days % 31);
-      } else {
-        jm = 7 + Math.floor((days - 186) / 30);
-        jd = 1 + ((days - 186) % 30);
-      }
-      return { jy, jm, jd };
+    function toggleForm(show) {
+      const form = document.getElementById('taskForm');
+      form.style.display = show ? 'block' : 'none';
     }
+
+    // Simple renderTasks function to display tasks
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = 'در حال بارگذاری...';
+
+      db.collection('tasks').orderBy('timestamp', 'desc').get()
+        .then((querySnapshot) => {
+          taskList.innerHTML = ''; // Clear loading message
+
+          if (querySnapshot.empty) {
+            taskList.innerHTML = '<p>هیچ وظیفه‌ای یافت نشد.</p>';
+            return;
+          }
+
+          querySnapshot.forEach((doc) => {
+            const task = doc.data();
+            const taskDiv = document.createElement('div');
+            taskDiv.className = 'task';
+            taskDiv.innerHTML = `
+              <strong>${task.title}</strong>
+              <p>${task.details}</p>
+              <p>تاریخ سررسید: ${task.dueDate}</p>
+              <p>پیشرفت: ${task.progress}%</p>
+            `;
+            taskList.appendChild(taskDiv);
+          });
+        })
+        .catch((error) => {
+          console.error("Error getting tasks: ", error);
+          taskList.innerHTML = 'خطا در بارگذاری وظایف: ' + error.message;
+        });
+    }
+
+    // Call renderTasks when the page loads
+    window.onload = renderTasks;
   </script>
 </body>
+
 </html>
