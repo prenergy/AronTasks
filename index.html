@@ -4,61 +4,120 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>مدیریت وظایف</title>
+  <title>مدیر وظایف آفلاین</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Vazirmatn', sans-serif;
       background: #f2f2f2;
       padding: 20px;
-      direction: rtl;
-      font-size: 16px;
-    }
-
-    .container {
       max-width: 700px;
       margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
+      direction: rtl;
+      font-size: 18px;
     }
 
-    h1 {
+    .form-header {
       text-align: center;
-      color: #5a47d7;
+      color: #fff;
+      background: #5a47d7;
+      padding: 15px;
+      border-radius: 10px 10px 0 0;
+      font-size: 22px;
+      margin-bottom: 0;
     }
 
-    label {
-      display: block;
-      margin-top: 10px;
+    .page-header {
+      text-align: center;
+      color: white;
+      background: #2196f3;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 22px;
+      margin-bottom: 15px;
+      font-weight: bold;
     }
 
     input,
-    textarea,
-    button {
-      width: 100%;
-      margin-top: 5px;
-      padding: 10px;
+    button,
+    textarea {
       font-family: 'Vazirmatn', sans-serif;
-      font-size: 16px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
       box-sizing: border-box;
-    }
-
-    #progressLabel,
-    .jalali-date {
-      margin-top: 5px;
-      font-size: 14px;
-      color: #555;
-    }
-
-    .task-card {
-      background: #fff;
+      font-size: 16px;
       border-radius: 8px;
-      margin-top: 15px;
-      padding: 15px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #ccc;
+    }
+
+    .task {
+      background: white;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+
+    .jalali-date,
+    #editTimestamp {
+      font-size: 0.85em;
+      color: #777;
+      margin-top: -5px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    #addBtn {
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      background: #5a47d7;
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      font-size: 30px;
+      cursor: pointer;
+    }
+
+    #taskForm {
+      display: none;
+      background: white;
+      padding: 20px;
+      border-radius: 0 0 10px 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #searchHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: white;
+      border-radius: 8px;
+      padding: 5px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    #searchInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 16px;
+      background: transparent;
+      padding: 10px;
+    }
+
+    .task strong {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .task .details {
+      margin-bottom: 10px;
+      display: block;
     }
 
     .progress-bar {
@@ -66,7 +125,7 @@
       background: #ccc;
       border-radius: 5px;
       overflow: hidden;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .progress {
@@ -75,154 +134,36 @@
     }
 
     .task-actions button {
-      width: 48%;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-
-    .task-actions {
-      display: flex;
-      gap: 4%;
+      margin: 5px 0 0 10px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #eee;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <h1>مدیریت وظایف</h1>
-    <label>عنوان وظیفه</label>
-    <input type="text" id="taskTitle" placeholder="مثال: خرید کتاب">
-
-    <label>توضیحات</label>
-    <textarea id="taskDetails" placeholder="توضیحات اضافی..."></textarea>
-
-    <div class="jalali-date" id="editTimestamp"></div>
-
-    <label>تاریخ سررسید</label>
-    <input type="date" id="taskDue" onchange="updateJalaliDate(this.value)">
-    <div class="jalali-date" id="jalaliDisplay"></div>
-
-    <label>پیشرفت</label>
-    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
-    <div id="progressLabel">0%</div>
-
-    <button onclick="saveTask()" id="submitBtn">افزودن وظیفه ➕</button>
-
-    <div id="taskList"></div>
+  <div class="page-header">لیست کارها</div>
+  <div id="searchHeader">
+    <input id="searchInput" type="text" placeholder="جستجوی وظایف..." oninput="renderTasks()" />
   </div>
-
-  <script>
-    let tasks = [];
-    let editIndex = -1;
-
-    function toJalali(gy, gm, gd) {
-      const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-      let jy, jm, jd;
-      gy = parseInt(gy);
-      gm = parseInt(gm);
-      gd = parseInt(gd);
-      let gy2 = (gm > 1) ? (gy + 1) : gy;
-      let days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4)
-        - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + g_d_m[gm];
-      jy = -1595 + (33 * Math.floor(days / 12053));
-      days %= 12053;
-      jy += 4 * Math.floor(days / 1461);
-      days %= 1461;
-      if (days > 365) {
-        jy += Math.floor((days - 1) / 365);
-        days = (days - 1) % 365;
-      }
-      jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
-      jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
-      return `${jy}/${jm}/${jd}`;
-    }
-
-    function updateJalaliDate(gDate) {
-      const parts = gDate.split('-');
-      if (parts.length === 3) {
-        const jalali = toJalali(parts[0], parts[1] - 1, parts[2]);
-        document.getElementById("jalaliDisplay").innerText = `تاریخ جلالی: ${jalali}`;
-      }
-    }
-
-    function updateProgressLabel(val) {
-      document.getElementById("progressLabel").innerText = val + '%';
-    }
-
-    function saveTask() {
-      const title = document.getElementById("taskTitle").value;
-      const details = document.getElementById("taskDetails").value;
-      const due = document.getElementById("taskDue").value;
-      const progress = document.getElementById("taskProgress").value;
-      const task = { title, details, due, progress };
-
-      if (editIndex > -1) {
-        tasks[editIndex] = task;
-        editIndex = -1;
-        document.getElementById("submitBtn").innerText = 'افزودن وظیفه ➕';
-      } else {
-        tasks.push(task);
-      }
-
-      renderTasks();
-      resetForm();
-    }
-
-    function renderTasks() {
-      const list = document.getElementById("taskList");
-      list.innerHTML = "";
-      tasks.forEach((t, i) => {
-        const card = document.createElement("div");
-        card.className = "task-card";
-        const jalali = t.due ? toJalali(t.due.split('-')[0], t.due.split('-')[1] - 1, t.due.split('-')[2]) : '';
-        card.innerHTML = `
-          <h3>${t.title}</h3>
-          <p>${t.details}</p>
-          <p>${t.due || ''}</p>
-          <div class="progress-bar">
-            <div class="progress" style="width:${t.progress}%"></div>
-          </div>
-          <p>پیشرفت: ${t.progress}%</p>
-          <div class="task-actions">
-            <button onclick="editTask(${i})">✏️ ویرایش</button>
-            <button onclick="deleteTask(${i})">🗑 حذف</button>
-          </div>
-        `;
-        list.appendChild(card);
-      });
-    }
-
-    function editTask(index) {
-      const task = tasks[index];
-      document.getElementById("taskTitle").value = task.title;
-      document.getElementById("taskDetails").value = task.details;
-      document.getElementById("taskDue").value = task.due;
-      document.getElementById("taskProgress").value = task.progress;
-      updateProgressLabel(task.progress);
-      updateJalaliDate(task.due);
-      editIndex = index;
-      document.getElementById("submitBtn").innerText = 'ذخیره تغییرات';
-    }
-
-    function deleteTask(index) {
-      if (confirm('آیا مطمئنید؟')) {
-        tasks.splice(index, 1);
-        renderTasks();
-      }
-    }
-
-    function resetForm() {
-      document.getElementById("taskTitle").value = "";
-      document.getElementById("taskDetails").value = "";
-      document.getElementById("taskDue").value = "";
-      document.getElementById("taskProgress").value = 0;
-      document.getElementById("progressLabel").innerText = '0%';
-      document.getElementById("jalaliDisplay").innerText = '';
-      document.getElementById("editTimestamp").innerText = '';
-    }
-
-    renderTasks();
-  </script>
+  <div id="taskList"></div>
+  <div id="taskForm">
+    <div class="form-header">وظیفه جدید</div>
+    <input id="taskTitle" type="text" placeholder="مثال: خرید کتاب" />
+    <textarea id="taskDetails" placeholder="توضیحات اضافی..." oninput="updateLastEdited()"></textarea>
+    <div id="editTimestamp" class="jalali-date"></div>
+    <label for="taskDue">تاریخ سررسید</label>
+    <input id="taskDue" type="date" oninput="updateJalaliDate(this.value)" />
+    <div class="jalali-date" id="jalaliDisplay"></div>
+    <label for="taskProgress">پیشرفت</label>
+    <input type="range" id="taskProgress" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)" />
+    <div class="jalali-date"><span id="progressLabel">0%</span></div>
+    <button id="submitButton" onclick="addTask()">➕ افزودن وظیفه</button>
+  </div>
+  <button id="addBtn" onclick="toggleForm(true)">+</button>
 </body>
 
 </html>
